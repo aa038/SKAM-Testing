@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My First Three.js Scene</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        canvas { display: block; background-color: #EEE; }
+        .controls { position: absolute; top: 10px; left: 10px; width:20%; font-size: 12px; background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; max-height: calc(50vh - 20px); overflow-y: auto;}
+        .section { background-color: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .section-title { cursor: pointer; font-weight: bold; }
+        .section-content { padding: 10px 0; }
+        .hidden { display: none; }
+        #plotly-div {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 50%;
+            background-color: rgba(240, 240, 240, 0.8);
+        }
+        label, button { display: block; margin: 5px 0; }
+        .scene-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .scene-container.fullscreen {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5; /* Ensure it appears on top */
+        }
+
+        .fullscreen-button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 15; /* Ensure the button is on top of everything */
+        }
+
+        .fullscreen-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="scene-container" id="scene-container">
+        <button id="toggle-fullscreen" class="fullscreen-button">&#x26F6;</button>
+        <div class="controls">
+            <div class="section">
+                <div class="section-title">Observer Position</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="alphaSlider">Alpha (Rotation around z'):</label>
+                        <input type="range" id="alphaSlider" min="0" max="90" value="0">
+                        <input type="number" id="alphaInput" min="0" max="90" value="0" style="width: 60px;"> degrees
+                    </div>
+                    <div>
+                        <label for="betaSlider">Beta (Rotation around y'):</label>
+                        <input type="range" id="betaSlider" min="-90" max="90" value="0">
+                        <input type="number" id="betaInput" min="-90" max="90" value="0" style="width: 60px;"> degrees
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">QSO Position</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="gammaSlider">Gamma (QSO Position Angle):</label>
+                        <input type="range" id="gammaSlider" min="0" max="360" value="0">
+                        <input type="number" id="gammaInput" min="0" max="360" value="0" style="width: 60px;"> degrees
+                    </div>
+                    <div>
+                        <label for="rSlider">R (Impact Parameter):</label>
+                        <input type="range" id="rSlider" min="0" max="200" value="7">
+                        <input type="number" id="rInput" min="0" max="200" value="7" style="width: 60px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Galaxy Properties</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="overdensitySlider">Overdensity Factor:</label>
+                        <input type="range" id="overdensitySlider" min="100" max="500" value="200">
+                        <input type="number" id="overdensityInput" min="100" max="500" value="200" style="width: 60px;">
+                    </div>
+                    
+                    <div>
+                        <label for="concentrationSlider">Concentration Parameter C:</label>
+                        <input type="range" id="concentrationSlider" min="5" max="20" value="10">
+                        <input type="number" id="concentrationInput" min="5" max="20" value="10" style="width: 60px;">
+                    </div>
+                    
+                    <div>
+                        <label for="velocitySlider">Max Circular Velocity (km/s):</label>
+                        <input type="range" id="velocitySlider" min="100" max="400" value="220">
+                        <input type="number" id="velocityInput" min="100" max="400" value="220" style="width: 60px;"> km/s
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Halo Properties</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="etaSlider">η:</label>
+                        <input type="range" id="etaSlider" min="0" max="1" step="0.01" value="1">
+                        <input type="number" id="etaInput" min="0" max="1" step="0.01" value="1" style="width: 60px;">
+                    </div>
+                    <!-- Hide Halo Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideHaloCheckbox">
+                        <label for="hideHaloCheckbox">Hide halo</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Bi-Polar Wind Properties</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="skirtRadiusSlider">Skirt Radius ρ<sub>w,0</sub>:</label>
+                        <input type="range" id="skirtRadiusSlider" min="0" max="100" value="50">
+                        <input type="number" id="skirtRadiusInput" min="0" max="100" value="50" style="width: 60px;">
+                    </div>
+                    <div>
+                        <label for="openingAngleSlider">Opening Angle Θ<sub>w</sub>:</label>
+                        <input type="range" id="openingAngleSlider" min="0" max="90" value="45">
+                        <input type="number" id="openingAngleInput" min="0" max="90" value="45" style="width: 60px;"> degrees
+                    </div>
+                    <div>
+                        <label for="etaWSlider">η<sub>w</sub>:</label>
+                        <input type="range" id="etaWSlider" min="0" max="1" step="0.01" value="0.5">
+                        <input type="number" id="etaWInput" min="0" max="1" step="0.01" value="0.5" style="width: 60px;">
+                    </div>
+                    <!-- Hide Wind Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideWindCheckbox">
+                        <label for="hideWindCheckbox">Hide bi-polar wind</label>
+                    </div>
+                    <!-- Hide Wind Particles Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideWindParticlesCheckbox">
+                        <label for="hideWindParticlesCheckbox">Hide wind particles</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Galaxy Disk Properties</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="diskRadiusSlider">Disk Radius ρ<sub>d:</label>
+                        <input type="range" id="diskRadiusSlider" min="0" max="100" value="50">
+                        <input type="number" id="diskRadiusInput" min="0" max="100" value="50" style="width: 60px;"> 
+                    </div>
+                    <div>
+                        <label for="diskHeightSlider">Disk Height h<sub>d :</label>
+                        <input type="range" id="diskHeightSlider" min="0" max="100" value="10">
+                        <input type="number" id="diskHeightInput" min="0" max="100" value="10" style="width: 60px;">
+                    </div>
+                    <!-- Hide Disk Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideDiskCheckbox">
+                        <label for="hideDiskCheckbox">Hide galactic disk</label>
+                    </div>
+                    <!-- Hide Stars Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideStarsCheckbox">
+                        <label for="hideStarsCheckbox">Hide stars</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Accretion Disk Properties</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="accretionRadiusSlider">Accretion Radius ρ<sub>a,0</sub>:</label>
+                        <input type="range" id="accretionRadiusSlider" min="15" max="50" value="15">
+                        <input type="number" id="accretionRadiusInput" min="15" max="50" value="15" style="width: 60px;">
+                    </div>
+                    <div>
+                        <label for="flareAngleSlider">Flare Angle Θ<sub>a</sub>:</label>
+                        <input type="range" id="flareAngleSlider" min="0" max="90" value="30">
+                        <input type="number" id="flareAngleInput" min="0" max="90" value="30" style="width: 60px;"> degrees
+                    </div>
+                    <div>
+                        <label for="etaASlider">η<sub>a</sub>:</label>
+                        <input type="range" id="etaASlider" min="0.5" max="1" step="0.01" value="1">
+                        <input type="number" id="etaAInput" min="0.5" max="1" step="0.01" value="1" style="width: 60px;">
+                    </div>
+                    <!-- Hide Wind Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideAccretionCheckbox">
+                        <label for="hideAccretionCheckbox">Hide accretion disk</label>
+                    </div>
+                    <!-- Hide Wind Particles Checkbox -->
+                    <div>
+                        <input type="checkbox" id="hideAccretionParticlesCheckbox">
+                        <label for="hideAccretionParticlesCheckbox">Hide accretion particles</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Observer Comoving Frame</div>
+                <div class="section-content hidden">
+                    <div>
+                        <label for="lockCamera">Lock Camera to Observer Frame:</label>
+                        <input type="checkbox" id="lockCamera">
+                    </div>
+                    <div>
+                        <label for="lockCamera">Zoom:</label>
+                        <input type="range" id="cameraXPosition" min="10" max="100" value="50" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>  
+    </div>
+
+    <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.section-title').forEach(title => {
+                    title.addEventListener('click', function() {
+                        this.nextElementSibling.classList.toggle('hidden');
+                    });
+                });
+            });
+    </script>
+    <script src="https://unpkg.com/three@0.137.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://unpkg.com/three@0.137.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://unpkg.com/three@0.137.0//examples/js/geometries/ParametricGeometry.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="Visualization.js"></script>
+    
+
+    <div id="plotly-div"></div>
+    <script src="Velocities.js"></script>
+    
+</body>
+</html>
