@@ -26,8 +26,8 @@ let rotMatrix = new THREE.Matrix3();
 let rotMatrix4 = new THREE.Matrix4();
 
 function rotationMatrix(){
-    let alpha = Number(document.getElementById('alphaSlider').value);
-    let beta = Number(document.getElementById('betaSlider').value);
+    let alpha = Number(document.getElementById('alphaInput').value);
+    let beta = Number(document.getElementById('betaInput').value);
 
     alpha = deg2rad(alpha);
     beta = deg2rad(beta);
@@ -708,7 +708,7 @@ function debounce(func, wait) {
     };
 };
 
-const debouncedAccretionDiscGeometry = debounce(updateAccretionDiscGeometry, 2);
+const debouncedAccretionDiscGeometry = debounce(updateAccretionDiscGeometry, 0);
 
 // Accretion disk parameters
 document.getElementById('accretionRadiusSlider').addEventListener('input', function() {
@@ -758,6 +758,65 @@ document.getElementById('hideAccretionParticlesCheckbox').addEventListener('chan
 debouncedAccretionDiscGeometry();
 
 /***********************************************************************/
+
+let isDragging = false;
+let previousMousePosition = {
+    x: 0,
+    y: 0
+};
+
+// Initialize sliders
+const alphaSlider = document.getElementById('alphaSlider');
+const betaSlider = document.getElementById('betaSlider');
+const alphaInput = document.getElementById('alphaInput');
+const betaInput = document.getElementById('betaInput');
+
+// Add mouse event listeners
+document.addEventListener('mousedown', onMouseDown, false);
+document.addEventListener('mousemove', onMouseMove, false);
+document.addEventListener('mouseup', onMouseUp, false);
+
+function onMouseDown(event) {
+    isDragging = true;
+    previousMousePosition = {
+        x: event.clientX,
+        y: event.clientY
+    };
+}
+
+function onMouseMove(event) {
+    if (!isDragging) return;
+
+    const deltaX = event.clientX - previousMousePosition.x;
+    const deltaY = event.clientY - previousMousePosition.y;
+
+    // Update previous mouse position
+    previousMousePosition = {
+        x: event.clientX,
+        y: event.clientY
+    };
+
+    // Update beta based on horizontal mouse movement (left-to-right)
+    const beta = parseFloat(betaSlider.value) - deltaX * 0.4; // Adjust sensitivity as needed
+
+    // Update alpha based on vertical mouse movement (up-to-down)
+    const alpha = parseFloat(alphaSlider.value) - deltaY * 0.4; // Adjust sensitivity as needed
+
+    // Update sliders and input values
+    alphaSlider.value = alpha;
+    betaSlider.value = beta;
+    alphaInput.value = alpha;
+    betaInput.value = beta;
+
+    // Update the cylinder geometry
+    debouncedUpdateWindGeometry();
+    debouncedUpdateCylinderGeometry();
+    debouncedAccretionDiscGeometry()
+}
+
+function onMouseUp() {
+    isDragging = false;
+}
 
 document.getElementById('alphaSlider').addEventListener('input', function() {
     document.getElementById('alphaInput').value = this.value;
